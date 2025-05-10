@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Tab } from '../../types';
 import HomePage from '../content/HomePage';
+const { ipcRenderer } = window.require('electron');
 
 interface BrowserContentProps {
   activeTab: Tab;
   isDarkMode: boolean;
+  onTitleChange: (tabId: string, title: string) => void;
+  onUrlChange: (tabId: string, url: string) => void;
 }
 
-const BrowserContent: React.FC<BrowserContentProps> = ({ activeTab, isDarkMode }) => {
-  // If the active tab has no URL, show the home page
+const BrowserContent: React.FC<BrowserContentProps> = ({ 
+  activeTab, 
+  isDarkMode,
+  onTitleChange,
+  onUrlChange
+}) => {
+  const webviewRef = useRef<Electron.WebviewTag>(null);
+
+  useEffect(() => {
+    if (webviewRef.current && activeTab.url) {
+      const webview = webviewRef.current;
+
+      webview.addEventListener('page-title-updated', (e: any) => {
+        onTitleChange(activeTab.id, e.title);
+      });
+
+      webview.addEventListener('did-navigate', (e: any) => {
+        onUrlChange(activeTab.id, e.url);
+        
+        // Save to history
+        ipcRenderer.send('save-history', {
+          title: webview.getTitle(),
+          url: e.url,
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
+  }, [activeTab.id, activeTab.url]);
+
   if (!activeTab.url) {
     return (
       <div className="flex-grow overflow-auto">
@@ -16,24 +46,15 @@ const BrowserContent: React.FC<BrowserContentProps> = ({ activeTab, isDarkMode }
       </div>
     );
   }
-  
+
   return (
-    <div className={`flex-grow overflow-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg mb-2">Simulated browser content for:</p>
-          <p className="font-medium text-xl mb-4 text-blue-500">{activeTab.url || 'New Tab'}</p>
-          <div className="p-8 rounded-lg border border-gray-200 dark:border-gray-700 max-w-2xl mx-auto">
-            <p className="mb-2">In a real browser, this would display:</p>
-            <ul className="text-left list-disc pl-5 space-y-1">
-              <li>The actual webpage content</li>
-              <li>Rendered HTML from the URL</li>
-              <li>Interactive elements</li>
-              <li>Media content</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+    <div className="flex-grow">
+      <webview
+        ref={webviewRef}
+        src={activeTab.url}
+        style={{ width: '100%', height: '100%' }}
+        allowpopups="true"
+      />
     </div>
   );
 };

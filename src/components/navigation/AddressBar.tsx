@@ -1,57 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, X, ArrowRight, Mic, Camera } from 'lucide-react';
+const { ipcRenderer } = window.require('electron');
 
 interface AddressBarProps {
   isDarkMode: boolean;
+  currentUrl: string;
+  onNavigate: (url: string) => void;
 }
 
-const AddressBar: React.FC<AddressBarProps> = ({ isDarkMode }) => {
-  const [address, setAddress] = useState<string>('');
+const AddressBar: React.FC<AddressBarProps> = ({ isDarkMode, currentUrl, onNavigate }) => {
+  const [address, setAddress] = useState<string>(currentUrl || '');
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    // Simulate search suggestions
-    setSuggestions([
-      'facebook.com',
-      'github.com',
-      'stackoverflow.com',
-      'youtube.com',
-      'amazon.com'
-    ]);
-  };
+  useEffect(() => {
+    setAddress(currentUrl || '');
+  }, [currentUrl]);
 
-  const handleBlur = () => {
-    // Delay hiding suggestions to allow clicking on them
-    setTimeout(() => {
-      setIsFocused(false);
-      setSuggestions([]);
-    }, 200);
-  };
+  useEffect(() => {
+    const settings = ipcRenderer.sendSync('get-settings');
+    setSettings(settings);
+  }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAddress(e.target.value);
-    // Simulate filtered suggestions based on input
-    if (e.target.value) {
-      setSuggestions([
-        `${e.target.value}.com`,
-        `search for ${e.target.value}`,
-        `${e.target.value} latest news`,
-        `${e.target.value} shop online`
-      ]);
-    } else {
-      setSuggestions([]);
+  const handleNavigate = (url: string) => {
+    let finalUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.includes('.')) {
+        finalUrl = `https://${url}`;
+      } else {
+        // Use selected search engine
+        const searchEngine = settings?.searchEngine || 'Google';
+        const searchUrls = {
+          'Google': `https://www.google.com/search?q=${encodeURIComponent(url)}`,
+          'DuckDuckGo': `https://duckduckgo.com/?q=${encodeURIComponent(url)}`,
+          'Yandex': `https://yandex.com/search/?text=${encodeURIComponent(url)}`
+        };
+        finalUrl = searchUrls[searchEngine];
+      }
     }
+    onNavigate(finalUrl);
   };
 
-  const clearAddress = () => {
-    setAddress('');
-    setSuggestions([]);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleNavigate(address);
   };
 
   return (
-    <div className="relative">
+    <form onSubmit={handleSubmit} className="relative w-full">
       <div className={`flex items-center h-10 px-3 rounded-full border ${
         isDarkMode 
           ? 'bg-gray-700 border-gray-600 text-white focus-within:bg-gray-800 focus-within:border-blue-500' 
@@ -63,9 +60,9 @@ const AddressBar: React.FC<AddressBarProps> = ({ isDarkMode }) => {
         <input
           type="text"
           value={address}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onChange={(e) => setAddress(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder="Search or enter website name"
           className="flex-grow bg-transparent outline-none text-sm h-full"
         />
@@ -73,42 +70,30 @@ const AddressBar: React.FC<AddressBarProps> = ({ isDarkMode }) => {
         <div className="flex items-center gap-2">
           {address && (
             <button 
-              onClick={clearAddress}
+              type="button"
+              onClick={() => setAddress('')}
               className={`p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
             >
               <X size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
             </button>
           )}
           
-          <button className={`p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}>
+          <button 
+            type="button"
+            className={`p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+          >
             <Mic size={16} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
           </button>
           
-          <button className={`p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}>
+          <button 
+            type="button"
+            className={`p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+          >
             <Camera size={16} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
           </button>
         </div>
       </div>
-      
-      {isFocused && suggestions.length > 0 && (
-        <div className={`absolute top-full left-0 right-0 mt-1 rounded-lg shadow-lg overflow-hidden z-50 ${
-          isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
-        }`}>
-          {suggestions.map((suggestion, index) => (
-            <div 
-              key={index}
-              className={`px-4 py-2 flex items-center gap-3 cursor-pointer ${
-                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-            >
-              <Search size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-              <span className="flex-grow">{suggestion}</span>
-              <ArrowRight size={16} className="text-gray-400" />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </form>
   );
 };
 
