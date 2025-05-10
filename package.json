@@ -18,9 +18,19 @@
     "directories": {
       "output": "dist-electron"
     },
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/preload.cjs",
+        "to": "preload.cjs"
+      }
     ]
   },
   "dependencies": {
