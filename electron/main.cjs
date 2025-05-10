@@ -75,4 +75,6 @@ ipcMain.on('get-settings', (event) => {
   event.returnValue = store.get('settings', {
     homepage: 'https://google.com',
     searchEngine: 'Google',
-    darkMode: fa
+    darkMode: false
+  });
+});
