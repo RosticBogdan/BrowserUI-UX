@@ -1,24 +1,24 @@
-import s from "electron";
-var i = {};
-const { contextBridge: d, ipcRenderer: n } = s;
-d.exposeInMainWorld("electron", {
+import require$$0 from "electron";
+var preload = {};
+const { contextBridge, ipcRenderer } = require$$0;
+contextBridge.exposeInMainWorld("electron", {
   store: {
-    get: (e) => n.sendSync("get-store", e),
-    set: (e, r) => n.send("set-store", e, r)
+    get: (key) => ipcRenderer.sendSync("get-store", key),
+    set: (key, value) => ipcRenderer.send("set-store", key, value)
   },
   ipcRenderer: {
-    send: (e, ...r) => n.send(e, ...r),
-    on: (e, r) => {
-      n.on(e, (t, ...o) => r(...o));
+    send: (channel, ...args) => ipcRenderer.send(channel, ...args),
+    on: (channel, func) => {
+      ipcRenderer.on(channel, (event, ...args) => func(...args));
     },
-    once: (e, r) => {
-      n.once(e, (t, ...o) => r(...o));
+    once: (channel, func) => {
+      ipcRenderer.once(channel, (event, ...args) => func(...args));
     },
-    removeListener: (e, r) => {
-      n.removeListener(e, r);
+    removeListener: (channel, func) => {
+      ipcRenderer.removeListener(channel, func);
     }
   }
 });
 export {
-  i as default
+  preload as default
 };
