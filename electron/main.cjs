@@ -4,7 +4,6 @@ const Store = require('electron-store');
 const path = require('path');
 
 const store = new Store();
-
 enable();
 
 function createWindow() {
@@ -13,13 +12,13 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),
       webviewTag: true,
       enableRemoteModule: true
     }
   });
 
-  // In development, load from Vite dev server
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -42,7 +41,14 @@ app.on('activate', () => {
   }
 });
 
-// Handle IPC messages
+ipcMain.on('get-store', (event, key) => {
+  event.returnValue = store.get(key);
+});
+
+ipcMain.on('set-store', (event, key, value) => {
+  store.set(key, value);
+});
+
 ipcMain.on('save-history', (event, historyItem) => {
   const history = store.get('history', []);
   history.push(historyItem);
