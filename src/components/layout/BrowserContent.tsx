@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Tab } from '../../types';
 import HomePage from '../content/HomePage';
-const { ipcRenderer } = window.require('electron');
+
+// Safe electron import
+const electron = window && (window as any).require ? (window as any).require('electron') : null;
+const ipcRenderer = electron ? electron.ipcRenderer : null;
 
 interface BrowserContentProps {
   activeTab: Tab;
@@ -29,12 +32,14 @@ const BrowserContent: React.FC<BrowserContentProps> = ({
       webview.addEventListener('did-navigate', (e: any) => {
         onUrlChange(activeTab.id, e.url);
         
-        // Save to history
-        ipcRenderer.send('save-history', {
-          title: webview.getTitle(),
-          url: e.url,
-          timestamp: new Date().toISOString()
-        });
+        // Save to history only if in Electron environment
+        if (ipcRenderer) {
+          ipcRenderer.send('save-history', {
+            title: webview.getTitle(),
+            url: e.url,
+            timestamp: new Date().toISOString()
+          });
+        }
       });
     }
   }, [activeTab.id, activeTab.url]);

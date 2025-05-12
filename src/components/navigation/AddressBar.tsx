@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, ArrowRight, Mic, Camera } from 'lucide-react';
-const { ipcRenderer } = window.require('electron');
+
+// Safe electron import
+const electron = window && (window as any).require ? (window as any).require('electron') : null;
+const ipcRenderer = electron ? electron.ipcRenderer : null;
 
 interface AddressBarProps {
   isDarkMode: boolean;
@@ -19,8 +22,10 @@ const AddressBar: React.FC<AddressBarProps> = ({ isDarkMode, currentUrl, onNavig
   }, [currentUrl]);
 
   useEffect(() => {
-    const settings = ipcRenderer.sendSync('get-settings');
-    setSettings(settings);
+    if (ipcRenderer) {
+      const settings = ipcRenderer.sendSync('get-settings');
+      setSettings(settings);
+    }
   }, []);
 
   const handleNavigate = (url: string) => {
