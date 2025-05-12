@@ -55,6 +55,16 @@ const BrowserLayout: React.FC = () => {
     }
   };
   
+  const handleNavigate = (url: string) => {
+    setTabs(prevTabs => 
+      prevTabs.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, url, isLoading: true }
+          : tab
+      )
+    );
+  };
+  
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
@@ -73,6 +83,8 @@ const BrowserLayout: React.FC = () => {
           toggleDarkMode={toggleDarkMode}
           toggleBookmarks={toggleBookmarks}
           showBookmarks={showBookmarks}
+          currentUrl={activeTab.url}
+          onNavigate={handleNavigate}
         />
         <TabBar 
           tabs={tabs} 

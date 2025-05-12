@@ -8,13 +8,17 @@ interface HeaderProps {
   toggleDarkMode: () => void;
   toggleBookmarks: () => void;
   showBookmarks: boolean;
+  currentUrl: string;
+  onNavigate: (url: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   isDarkMode, 
   toggleDarkMode, 
   toggleBookmarks,
-  showBookmarks
+  showBookmarks,
+  currentUrl,
+  onNavigate
 }) => {
   const [showSettings, setShowSettings] = useState<boolean>(false);
   
@@ -23,7 +27,11 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-4">
         <ToolBar isDarkMode={isDarkMode} />
         <div className="flex-grow">
-          <AddressBar isDarkMode={isDarkMode} />
+          <AddressBar 
+            isDarkMode={isDarkMode} 
+            currentUrl={currentUrl}
+            onNavigate={onNavigate}
+          />
         </div>
         <div className="flex-none flex gap-2">
           <button
